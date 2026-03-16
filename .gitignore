@@ -1,0 +1,24 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs e temporários
+*.log
+*.tmp
+.cache/
+
+# Node (caso scripts auxiliares sejam adicionados)
+node_modules/
+npm-debug.log*
+
+# Python (caso scripts auxiliares sejam adicionados)
+__pycache__/
+*.pyc
+.venv/
