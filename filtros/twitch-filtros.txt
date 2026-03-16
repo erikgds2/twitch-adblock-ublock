@@ -2,7 +2,7 @@
 ! Lista de Filtros Customizada — Twitch Ad Block
 ! Versão: 1.0.0
 ! Última atualização: 2026-03-16
-! Compatível com: uBlock Origin 1.50+
+! Compatível com: uBlock Origin 1.50+ | Chrome | Firefox | Edge
 ! =============================================================================
 ! COMO ADICIONAR:
 !   uBlock Origin → ⚙ Painel → Listas de filtros → Personalizado → colar URL raw

@@ -35,6 +35,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.0.1] — 2026-03-16
+
+### Corrigido
+- **[CRÍTICO]** Header do scriptlet corrigido para `// twitch-videoad.js` como primeira linha
+  — sem isso, `##+js(twitch-videoad)` era silenciosamente ignorado em todos os navegadores
+- **[Edge/Chrome]** `Response` constructor não aceita headers restritos (`content-encoding`,
+  `content-length`, `transfer-encoding`) — substituído por `clonarHeadersSeguros()`
+- **[Edge/Chrome]** `statusText` removido do `new Response()` — pode conter chars não-ASCII
+  que causam `TypeError` no Chromium
+- **[Edge/SPA]** `Object.defineProperty` no XHR trocado de `writable: false` para getter
+  com `configurable: true` — impede `TypeError: Cannot redefine property` na navegação SPA
+- Cabeçalho da lista de filtros atualizado para incluir compatibilidade com Edge
+
+### Adicionado
+- Seção "Notas para Microsoft Edge" no README
+- Link para uBlock Origin no Edge Add-ons Store
+- Instruções para desativar o Enhanced Security Mode do Edge para twitch.tv
+
+---
+
 ## Próximas Versões (Planejado)
 
 ### [1.1.0] — Em breve
