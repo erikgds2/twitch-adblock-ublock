@@ -1,3 +1,14 @@
+// ==UserScript==
+// @name         Twitch Ad Block
+// @namespace    https://github.com/erikgds2/twitch-adblock-ublock
+// @version      1.1.1
+// @description  Bloqueia anúncios na Twitch via worker hook + DOM fallback
+// @author       erikgds2
+// @match        https://www.twitch.tv/*
+// @match        https://twitch.tv/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
 // twitch-videoad.js
 // Bloqueador de anuncios da Twitch — backup stream via playerType alternativo
 // Compativel: Chrome, Firefox, Edge (uBlock Origin 1.50+)
@@ -358,8 +369,6 @@
                     super(blobUrl, opts);
                     return;
                 }
-                _log(`worker blob interceptado: ${blobUrl.slice(0, 60)}`);
-
                 _log(`worker blob interceptado: ${blobUrl.slice(0, 60)}`);
 
                 // Lê o código original do worker de forma síncrona (blob: ou CDN com CORS)
