@@ -351,26 +351,26 @@
 
         const NovoWorker = class Worker extends WorkerOriginal {
             constructor(blobUrl, opts) {
-                // Intercepta qualquer worker com blob URL (estamos dentro do twitch.tv)
-                // Workers de CDN externa (twitchsvc.net, etc.) também são interceptados
-                const ehBlob = typeof blobUrl === 'string' && blobUrl.startsWith('blob:');
-                if (!ehBlob) {
-                    _log(`worker ignorado (nao blob): ${String(blobUrl).slice(0, 80)}`);
-                    super(blobUrl, opts);
-                    return;
-                }
+                // Intercepta qualquer worker de URL string — já estamos dentro do twitch.tv
+                // Inclui blob: (HLS player antigo) e CDN direto (Amazon IVS WASM worker)
+                if (typeof blobUrl !== 'string') { super(blobUrl, opts); return; }
+                _log(`worker interceptado: ${blobUrl.slice(0, 80)}`);
 
                 _log(`worker blob interceptado: ${blobUrl.slice(0, 60)}`);
 
-                // Lê o código original do worker da Twitch de forma síncrona
+                // Lê o código original do worker de forma síncrona (blob: ou CDN com CORS)
                 const codigoOriginal = (() => {
                     try {
                         const req = new XMLHttpRequest();
                         req.open('GET', blobUrl, false);
                         req.overrideMimeType('text/javascript');
                         req.send();
-                        _log(`worker codigo lido: ${req.responseText.length} chars`);
-                        return req.responseText;
+                        if (req.status === 0 || req.status === 200) {
+                            _log(`worker codigo lido: ${req.responseText.length} chars, url-tipo: ${blobUrl.startsWith('blob:') ? 'blob' : 'cdn'}`);
+                            return req.responseText;
+                        }
+                        _log(`ERRO XHR status=${req.status}`);
+                        return '';
                     } catch (err) {
                         _log(`ERRO ao ler worker: ${err.message}`);
                         return '';
@@ -378,7 +378,7 @@
                 })();
 
                 if (!codigoOriginal) {
-                    _log('AVISO: codigo do worker vazio, usando worker original');
+                    _log('AVISO: codigo vazio, passando worker original sem modificacao');
                     super(blobUrl, opts);
                     return;
                 }
