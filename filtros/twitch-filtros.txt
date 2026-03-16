@@ -1,0 +1,84 @@
+! =============================================================================
+! Lista de Filtros Customizada — Twitch Ad Block
+! Versão: 1.0.0
+! Última atualização: 2026-03-16
+! Compatível com: uBlock Origin 1.50+
+! =============================================================================
+! COMO ADICIONAR:
+!   uBlock Origin → ⚙ Painel → Listas de filtros → Personalizado → colar URL raw
+!   ou: Minhas Regras → Editar → colar diretamente
+! =============================================================================
+
+! ── Elementos visuais de anúncio ──────────────────────────────────────────────
+
+! Overlay de anúncio sobre o player
+twitch.tv##.tw-ad-unit
+twitch.tv##[class*="adunit"]
+twitch.tv##.player-ad-overlay
+twitch.tv##.ad-banner-default__banner
+
+! Contagem regressiva do anúncio
+twitch.tv##.ad-countdown
+twitch.tv##div[data-a-target="ad-countdown"]
+twitch.tv##.tw-ad-unit__countdown
+twitch.tv###tw-ad-timer
+
+! Wrapper e containers de anúncio
+twitch.tv##div[data-test-selector="ad-banner-default-wrapper"]
+twitch.tv##.ad-banner-default
+twitch.tv##.tw-ad
+twitch.tv##[class*="ad-banner"]
+twitch.tv##.video-ad-label
+
+! Anúncios no chat
+twitch.tv##.chat-input-container .tw-inline-flex[class*="ad"]
+twitch.tv##div[data-test-selector="chat-ad-banner"]
+
+! Barra de anúncio no topo do canal
+twitch.tv##.top-nav-ad
+twitch.tv##.tts-ad-container
+
+! ── Requisições de rede (bloqueio de chamadas a servidores de anúncio) ─────────
+
+! Google DoubleClick / DFP (Twitch usa para stream ads)
+||imasdk.googleapis.com/js/sdkloader/ima3.js$script,domain=twitch.tv
+||googleads.g.doubleclick.net^$domain=twitch.tv
+||pubads.g.doubleclick.net^$domain=twitch.tv
+||securepubads.g.doubleclick.net^$domain=twitch.tv
+||ads.doubleclick.net^$domain=twitch.tv
+
+! Servidor de anúncios da própria Twitch
+||static.twitchsvc.net/static/twitchads/$media
+||static.twitchsvc.net^$third-party,domain=twitch.tv
+||spade.twitch.tv/track$domain=twitch.tv
+||twitchsvc.net/static^$domain=twitch.tv
+
+! Amazon Publisher Services (parceiro de ads Twitch)
+||aps.amazon.com^$third-party,domain=twitch.tv
+||aax.amazon-adsystem.com^$domain=twitch.tv
+
+! Reinforce e outros ad-networks usados pela Twitch
+||reinforce.twitch.tv^
+||usher.twitchapps.com^$domain=twitch.tv
+
+! ── Filtros procedurais (DOM manipulation) ─────────────────────────────────────
+
+! Esconde container quando contém texto de anúncio
+twitch.tv##div[class*="VideoAdOverlay"]
+twitch.tv##.ad-overlay-modal-container
+
+! Bloqueia requisição de M3U8 com parâmetros de anúncio
+||video-edge-*.twitch.tv/*.m3u8?sig=*&token=*&allow_spectre=*$media,domain=twitch.tv
+
+! ── Scriptlet injection (requer userResourcesLocation configurado) ─────────────
+
+! Intercepta e substitui segmentos de anúncio no player HLS
+twitch.tv##+js(twitch-videoad)
+
+! ── Filtros de segurança (não remover) ─────────────────────────────────────────
+
+! Permite funcionamento normal do player Twitch
+@@||video-edge.twitch.tv^$media
+@@||video-weaver.twitch.tv^$media
+@@||clips.twitch.tv^$media
+@@||vod.twitch.tv^$media
