@@ -46,6 +46,36 @@
         );
     }
 
+    // ── Clona apenas headers seguros (Edge e Chrome proibem alguns headers) ────────
+
+    /**
+     * Copia os headers de uma Response para um novo objeto Headers,
+     * ignorando headers proibidos pelo construtor de Response no Chromium/Edge.
+     * Headers como content-encoding, content-length e transfer-encoding
+     * causam TypeError se passados diretamente ao new Response().
+     * @param {Headers} sourceHeaders
+     * @returns {Headers}
+     */
+    const HEADERS_PROIBIDOS = new Set([
+        'content-encoding',
+        'content-length',
+        'transfer-encoding',
+    ]);
+
+    function clonarHeadersSeguros(sourceHeaders) {
+        const headers = new Headers();
+        sourceHeaders.forEach((value, key) => {
+            if (!HEADERS_PROIBIDOS.has(key.toLowerCase())) {
+                try {
+                    headers.set(key, value);
+                } catch (_) {
+                    // Ignora headers que o browser recusa silenciosamente
+                }
+            }
+        });
+        return headers;
+    }
+
     // ── Interceptação do fetch do M3U8 ──────────────────────────────────────────
 
     const originalFetch = window.fetch;
@@ -79,27 +109,25 @@
                 return line;
             });
 
+            // statusText omitido intencionalmente: pode conter chars nao-ASCII
+            // que causam TypeError no Edge/Chromium (Fetch spec, secao 2.2)
+            const opcoes = {
+                status:  response.status,
+                headers: clonarHeadersSeguros(response.headers),
+            };
+
             if (hasAd) {
                 log('Anúncio removido do stream M3U8.');
-                // Retorna o manifest limpo como nova Response
-                return new Response(cleanedLines.join('\n'), {
-                    status:     response.status,
-                    statusText: response.statusText,
-                    headers:    response.headers,
-                });
+                return new Response(cleanedLines.join('\n'), opcoes);
             }
 
-            // Nenhum anúncio: retorna o manifest original sem modificação
-            return new Response(text, {
-                status:     response.status,
-                statusText: response.statusText,
-                headers:    response.headers,
-            });
+            // Nenhum anúncio: retorna manifest original com headers seguros
+            return new Response(text, opcoes);
 
         } catch (err) {
             log(`Erro ao interceptar: ${err.message}`);
-            // Em caso de erro, deixa a requisição original passar sem alteração
-            return originalFetch.apply(this, args);
+            // Propaga o erro original sem retentar (evita loop de falha)
+            throw err;
         }
     };
 
