@@ -1,33 +1,9 @@
-# =============================================================================
-# uBlock Origin — Configurações Avançadas OTIMIZADAS para Twitch
-# Versão: 1.0.0
-# =============================================================================
-# COMO APLICAR:
-#   1. Abra o uBlock Origin → clique no ícone ⚙ (Painel)
-#   2. Vá em "Configurações" → role até "Configurações avançadas"
-#   3. Clique em "Estou ciente dos riscos e desejo habilitar as configurações avançadas"
-#   4. Cole o conteúdo abaixo substituindo todo o texto existente
-#   5. Clique em "Aplicar alterações"
-# =============================================================================
-
-# ── Filtros e performance ──────────────────────────────────────────────────────
-
-# Habilita filtros procedurais genéricos (necessário para filtros Twitch avançados)
 allowGenericProceduralFilters true
-
-# Tempo limite para busca de assets (aumentado para listas externas)
 assetFetchTimeout 30
-
-# Template de comentário automático nos filtros
 autoCommentFilterTemplate {{date}} {{origin}}
-
-# Intervalo de atualização automática de assets (em minutos)
 autoUpdateAssetFetchPeriod 5
 autoUpdateDelayAfterLaunch 37
 autoUpdatePeriod 1
-
-# ── Cache e compressão ─────────────────────────────────────────────────────────
-
 benchmarkDatasetURL unset
 blockingProfiles 11111/#F00 11010/#C0F 11001/#00F 00001
 cacheStorageCompression true
@@ -35,32 +11,19 @@ cacheStorageCompressionThreshold 65536
 cacheStorageMultithread 2
 cacheControlForFirefox1376932 unset
 cloudStorageCompression true
-
-# ── DNS e CNAME (importante para rastreadores Twitch) ─────────────────────────
-
 cnameIgnoreList unset
 cnameIgnore1stParty true
 cnameIgnoreExceptions true
 cnameIgnoreRootDocument true
 cnameReplayFullURL false
-
-# ── Debug (desativado em produção) ────────────────────────────────────────────
-
 consoleLogLevel unset
 debugAssetsJson false
 debugScriptlets false
 debugScriptletInjector false
-
-# ── Atualização diferencial (mantém listas de filtros atualizadas com mais eficiência) ──
-
 differentialUpdate true
 disableWebAssembly false
-
-# ── DNS Cache (reduz latência ao verificar domínios bloqueados) ───────────────
-
 dnsCacheTTL 600
 dnsResolveEnabled true
-
 extensionUpdateForceReload false
 filterAuthorMode false
 loggerPopupType popup
@@ -77,24 +40,8 @@ requestStatsDisabled false
 selfieDelayInSeconds 53
 strictBlockingBypassDuration 120
 toolbarWarningTimeout 60
-
-# ── Prefixo confiável para listas externas ────────────────────────────────────
-# Permite carregar listas prefixadas com "ublock-" sem aviso de segurança
 trustedListPrefixes ublock-
-
 uiPopupConfig unset
 uiStyles unset
 updateAssetBypassBrowserCache false
-
-# ── CHAVE PRINCIPAL: Localização dos scriptlets customizados ──────────────────
-# Aponta para um arquivo .js com scriptlets customizados da comunidade.
-# Opções recomendadas pela comunidade (escolha uma e substitua a URL abaixo):
-#
-#   Opção A — TwitchAdSolutions (video-swap, recomendado):
-#     https://raw.githubusercontent.com/pixeltris/TwitchAdSolutions/master/video-swap-new/video-swap-new-ublock-origin.js
-#
-#   Opção B — Arquivo local (este repositório, após hospedar):
-#     https://raw.githubusercontent.com/erikgds2/twitch-adblock-ublock/main/scriptlets/twitch-videoad.js
-#
-# IMPORTANTE: A URL precisa ser raw/direta (não uma página HTML do GitHub)
 userResourcesLocation https://raw.githubusercontent.com/erikgds2/twitch-adblock-ublock/main/scriptlets/twitch-videoad.js
