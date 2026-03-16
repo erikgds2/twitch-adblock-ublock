@@ -1,16 +1,11 @@
+// twitch-videoad.js
+// Intercepta M3U8 da Twitch e remove segmentos de anuncio (server-side ads)
+// Compativel: Chrome, Firefox, Edge (uBlock Origin 1.50+)
 // =============================================================================
-// Scriptlet: twitch-videoad
-// Versão: 1.0.0
-// Descrição: Intercepta o carregamento do player HLS da Twitch e substitui
-//            segmentos de anúncio por um stream de baixa qualidade,
-//            eliminando o anúncio de vídeo embutido no stream M3U8.
-//
-// Técnica: "Low-Bitrate Ad Swap" — quando a Twitch injeta anúncios diretamente
-//          no stream HLS (server-side ads), este scriptlet detecta a troca
-//          de qualidade forçada e redireciona para um sub-stream alternativo.
-//
-// Compatível com: uBlock Origin 1.50+ (via userResourcesLocation)
-// Referência: https://github.com/pixeltris/TwitchAdSolutions
+// FORMATO OBRIGATORIO: as duas primeiras linhas acima sao o identificador do
+// recurso para o uBlock Origin (userResourcesLocation). SEM elas, o filtro
+// twitch.tv##+js(twitch-videoad) e IGNORADO em qualquer navegador.
+// Referencia: https://github.com/gorhill/uBlock/wiki/Advanced-settings#userresourceslocation
 // =============================================================================
 
 (function () {
