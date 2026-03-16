@@ -165,14 +165,26 @@
 
                     if (hasAd) {
                         log('Anúncio removido do XHR M3U8.');
-                        Object.defineProperty(this, 'responseText', {
-                            value:    cleaned.join('\n'),
-                            writable: false,
-                        });
-                        Object.defineProperty(this, 'response', {
-                            value:    cleaned.join('\n'),
-                            writable: false,
-                        });
+                        const cleanedText = cleaned.join('\n');
+
+                        // Usa getter + configurable:true em vez de value+writable:false.
+                        // Razoes:
+                        //   1. responseText eh definido como getter no prototype do XHR —
+                        //      tentar sombrea-lo como data property falha no Edge/Chromium
+                        //   2. configurable:true permite redefinir na proxima navegacao SPA
+                        //      (sem TypeError: "Cannot redefine property: responseText")
+                        try {
+                            Object.defineProperty(this, 'responseText', {
+                                get:          () => cleanedText,
+                                configurable: true,
+                            });
+                            Object.defineProperty(this, 'response', {
+                                get:          () => cleanedText,
+                                configurable: true,
+                            });
+                        } catch (defineErr) {
+                            log(`defineProperty falhou: ${defineErr.message}`);
+                        }
                     }
                 } catch (err) {
                     log(`Erro no XHR intercept: ${err.message}`);
