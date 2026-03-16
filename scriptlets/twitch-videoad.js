@@ -6,7 +6,7 @@
     'use strict';
 
     // ── Controle de versão para evitar conflito com outras instâncias ────────────
-    const VERSAO_SCRIPT = 24;
+    const VERSAO_SCRIPT = 25;
     if (typeof window.__twBlockVersao !== 'undefined' && window.__twBlockVersao >= VERSAO_SCRIPT) return;
     window.__twBlockVersao = VERSAO_SCRIPT;
 
@@ -23,6 +23,32 @@
         delayMinBuffer:     8000,
         ttlCacheSegmento:   120000,
     });
+
+    // ── Sistema de log ────────────────────────────────────────────────────────────
+    const _logBuf = [];
+    function _log(msg) {
+        const ts    = new Date().toISOString().slice(11, 23);
+        const entry = `[TW-BLOCK ${ts}] ${msg}`;
+        _logBuf.push(entry);
+        if (_logBuf.length > 300) _logBuf.shift();
+        console.log(entry);
+    }
+
+    // Expõe diagnóstico via console do browser
+    window.__twLogs  = _logBuf;
+    window.twLogs    = () => { console.log(_logBuf.join('\n')); return _logBuf.slice(); };
+    window.twDebug   = () => {
+        const info = {
+            versao:          VERSAO_SCRIPT,
+            workersHookados: ctx.workers.length,
+            authCapturada:   !!ctx.authHeader,
+            deviceId:        ctx.deviceId ? ctx.deviceId.slice(0, 8) + '...' : null,
+            v2api:           ctx.v2api,
+            logs_recentes:   _logBuf.slice(-30),
+        };
+        console.table(info);
+        return info;
+    };
 
     // ── Estado do contexto principal ─────────────────────────────────────────────
     const ctx = {
@@ -174,6 +200,7 @@
         }
 
         const ehAd = temMarcadorAd(texto, CONF.marcadorAd);
+        postMessage({ key: 'Log', value: `M3U8 recebido canal=${canal.nome} ehAd=${ehAd} url=${url.slice(0, 80)}` });
 
         if (ehAd) {
             if (!canal.exibindoAd) {
@@ -189,11 +216,15 @@
 
                 for (let t = inicio; !m3u8Limpo && t < CONF.tiposBackup.length; t++) {
                     const tipo = CONF.tiposBackup[t];
+                    postMessage({ key: 'Log', value: `tentando backup playerType=${tipo}` });
                     try {
                         let encodings = canal.cacheBackup[tipo];
                         if (!encodings) {
                             const tokenResp = await pedirAccessToken(canal.nome, tipo, estado, CONF);
-                            if (tokenResp.status !== 200) { canal.cacheBackup[tipo] = null; continue; }
+                            if (tokenResp.status !== 200) {
+                                postMessage({ key: 'Log', value: `token falhou status=${tokenResp.status} tipo=${tipo}` });
+                                canal.cacheBackup[tipo] = null; continue;
+                            }
                             const tokenData = await tokenResp.json();
                             const usherUrl  = new URL(`https://usher.ttvnw.net/api/${estado.v2api ? 'v2/' : ''}channel/hls/${canal.nome}.m3u8${canal.usherParams}`);
                             usherUrl.searchParams.set('sig',   tokenData.data.streamPlaybackAccessToken.signature);
@@ -203,14 +234,19 @@
                             encodings = canal.cacheBackup[tipo] = await encResp.text();
                         }
                         const urlStream  = urlParaResolucao(encodings, resolucaoAtual);
+                        if (!urlStream) { postMessage({ key: 'Log', value: `urlStream nao encontrada tipo=${tipo}` }); continue; }
                         const streamResp = await fetchReal(urlStream);
                         if (streamResp.status !== 200) { canal.cacheBackup[tipo] = null; continue; }
                         const candidato  = await streamResp.text();
+                        postMessage({ key: 'Log', value: `backup candidato ehAd=${temMarcadorAd(candidato, CONF.marcadorAd)} tipo=${tipo}` });
                         if (!temMarcadorAd(candidato, CONF.marcadorAd) || (!m3u8Limpo && t >= CONF.tiposBackup.length - 1)) {
                             m3u8Limpo = candidato;
                         }
                         if (minRequests) { m3u8Limpo = candidato; break; }
-                    } catch (_) { canal.cacheBackup[tipo] = null; }
+                    } catch (err) {
+                        postMessage({ key: 'Log', value: `erro backup tipo=${tipo} err=${err.message}` });
+                        canal.cacheBackup[tipo] = null;
+                    }
                 }
 
                 if (m3u8Limpo) texto = m3u8Limpo;
@@ -296,6 +332,7 @@
                                         }
                                     }
                                 }
+                                postMessage({ key: 'Log', value: `canal registrado: ${nome} resolucoes=${canal.resolucoes.length}` });
                             }
                             resolve(new Response(escreverServerTime(encodings, serverTime, estado.v2api)));
                         })
@@ -305,6 +342,7 @@
 
             return fetchReal.apply(this, arguments);
         };
+        postMessage({ key: 'Log', value: 'hookFetchWorker instalado' });
     }
 
     // ── Hook do Worker — ponto central da solução ────────────────────────────────
@@ -316,16 +354,34 @@
                 // Intercepta qualquer worker com blob URL (estamos dentro do twitch.tv)
                 // Workers de CDN externa (twitchsvc.net, etc.) também são interceptados
                 const ehBlob = typeof blobUrl === 'string' && blobUrl.startsWith('blob:');
-                if (!ehBlob) { super(blobUrl, opts); return; }
+                if (!ehBlob) {
+                    _log(`worker ignorado (nao blob): ${String(blobUrl).slice(0, 80)}`);
+                    super(blobUrl, opts);
+                    return;
+                }
+
+                _log(`worker blob interceptado: ${blobUrl.slice(0, 60)}`);
 
                 // Lê o código original do worker da Twitch de forma síncrona
                 const codigoOriginal = (() => {
-                    const req = new XMLHttpRequest();
-                    req.open('GET', blobUrl, false);
-                    req.overrideMimeType('text/javascript');
-                    req.send();
-                    return req.responseText;
+                    try {
+                        const req = new XMLHttpRequest();
+                        req.open('GET', blobUrl, false);
+                        req.overrideMimeType('text/javascript');
+                        req.send();
+                        _log(`worker codigo lido: ${req.responseText.length} chars`);
+                        return req.responseText;
+                    } catch (err) {
+                        _log(`ERRO ao ler worker: ${err.message}`);
+                        return '';
+                    }
                 })();
+
+                if (!codigoOriginal) {
+                    _log('AVISO: codigo do worker vazio, usando worker original');
+                    super(blobUrl, opts);
+                    return;
+                }
 
                 // Monta o novo worker injetando nossas funções
                 const blobNovo = new Blob([`
@@ -393,9 +449,11 @@
 
                 super(URL.createObjectURL(blobNovo), opts);
                 ctx.workers.push(this);
+                _log(`worker hookeado com sucesso. total workers: ${ctx.workers.length}`);
 
                 // Mensagens enviadas pelo worker ao contexto principal
                 this.addEventListener('message', e => {
+                    if (e.data.key === 'Log')                 _log(`[worker] ${e.data.value}`);
                     if (e.data.key === 'UpdateAdBlockBanner') atualizarBanner(e.data);
                     if (e.data.key === 'PauseResumePlayer')   acionarPlayer(true,  false);
                     if (e.data.key === 'ReloadPlayer')        acionarPlayer(false, true);
@@ -409,13 +467,13 @@
                         const resp  = await window.realFetch(req.url, req.options);
                         const corpo = await resp.text();
                         this.postMessage({ key: 'FetchResponse', value: {
-                            id:         req.id,
-                            status:     resp.status,
-                            statusText: resp.statusText,
-                            headers:    Object.fromEntries(resp.headers.entries()),
-                            body:       corpo,
+                            id:      req.id,
+                            status:  resp.status,
+                            headers: Object.fromEntries(resp.headers.entries()),
+                            body:    corpo,
                         }});
                     } catch (err) {
+                        _log(`ERRO proxy fetch: ${err.message}`);
                         this.postMessage({ key: 'FetchResponse', value: { id: req.id, error: err.message } });
                     }
                 });
@@ -427,6 +485,7 @@
             set: (_) => { /* bloqueia substituição do Worker */ },
             configurable: true,
         });
+        _log('hookWorker registrado');
     }
 
     // ── Intercepta fetch principal para capturar headers GQL ────────────────────
@@ -441,17 +500,22 @@
                 const sync = (campo, chaveHeader, chaveAlt, msg) => {
                     const val = typeof h[chaveHeader] === 'string' ? h[chaveHeader]
                               : typeof h[chaveAlt]    === 'string' ? h[chaveAlt] : null;
-                    if (val && val !== ctx[campo]) { ctx[campo] = val; notificarWorkers(msg, val); }
+                    if (val && val !== ctx[campo]) {
+                        ctx[campo] = val;
+                        notificarWorkers(msg, val);
+                        _log(`sync ${campo} -> workers`);
+                    }
                 };
 
                 if (url.includes('gql')) {
-                    sync('deviceId',        'X-Device-Id',     'Device-ID',        'SyncDeviceId');
-                    sync('clientVersion',   'Client-Version',  'Client-Version',   'SyncVersao');
-                    sync('clientSession',   'Client-Session-Id','Client-Session-Id','SyncSessao');
-                    sync('integrityHeader', 'Client-Integrity','Client-Integrity', 'SyncIntegridade');
+                    sync('deviceId',        'X-Device-Id',      'Device-ID',         'SyncDeviceId');
+                    sync('clientVersion',   'Client-Version',   'Client-Version',    'SyncVersao');
+                    sync('clientSession',   'Client-Session-Id','Client-Session-Id', 'SyncSessao');
+                    sync('integrityHeader', 'Client-Integrity', 'Client-Integrity',  'SyncIntegridade');
                     if (typeof h['Authorization'] === 'string' && h['Authorization'] !== ctx.authHeader) {
                         ctx.authHeader = h['Authorization'];
                         notificarWorkers('SyncAuth', ctx.authHeader);
+                        _log('auth capturada -> workers');
                     }
 
                     // Força playerType para obter token sem anúncio
@@ -460,6 +524,7 @@
                             const body = JSON.parse(init.body);
                             const forcar = (obj) => {
                                 if (obj?.variables?.playerType && obj.variables.playerType !== CONF.tipoForcado) {
+                                    _log(`forçando playerType: ${obj.variables.playerType} -> ${CONF.tipoForcado}`);
                                     obj.variables.playerType = CONF.tipoForcado;
                                 }
                             };
@@ -471,6 +536,7 @@
             }
             return fetchReal.apply(this, arguments);
         };
+        _log('hookFetchPrincipal registrado');
     }
 
     // ── Utilitários do player Twitch (via React internals) ───────────────────────
@@ -524,15 +590,39 @@
         if (!banner) {
             banner = document.createElement('div');
             banner.className = 'tw-adblock-status';
-            banner.innerHTML = '<div style="color:#fff;background:rgba(0,0,0,.75);position:absolute;top:0;left:0;padding:4px 8px;font-size:12px;font-family:monospace;z-index:9999;pointer-events:none;border-radius:0 0 4px 0"><span></span></div>';
-            banner.style.display = 'none';
+            banner.style.cssText = 'position:absolute;top:8px;left:8px;z-index:9999;pointer-events:none;';
+            banner.innerHTML = '<div style="color:#fff;background:rgba(15,10,30,.82);padding:5px 10px;font-size:11px;font-family:monospace;border-radius:4px;border:1px solid rgba(145,71,255,.5);letter-spacing:.3px"><span></span></div>';
             banner._span = banner.querySelector('span');
+            playerDiv.style.position = 'relative';
             playerDiv.appendChild(banner);
         }
-        banner._span.textContent = 'bloqueando anúncios'
-            + (dados.isMidroll           ? ' (midroll)'   : '')
-            + (dados.isStrippingAdSegments ? ' — stripping' : '');
-        banner.style.display = dados.hasAds ? 'block' : 'none';
+
+        if (!dados.hasAds) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        let texto = 'Propagandas sendo bloqueadas';
+        if (dados.isMidroll)             texto += ' (midroll)';
+        if (dados.isStrippingAdSegments) texto += ' — removendo segmentos';
+        banner._span.textContent = texto;
+        banner.style.display = 'block';
+    }
+
+    // ── Indicador de startup — confirma que o scriptlet está ativo ───────────────
+    function mostrarIndicadorAtivo() {
+        const esperar = setInterval(() => {
+            const playerDiv = document.querySelector('.video-player');
+            if (!playerDiv) return;
+            clearInterval(esperar);
+
+            const el = document.createElement('div');
+            el.style.cssText = 'position:absolute;top:8px;left:8px;z-index:9999;pointer-events:none;transition:opacity 1s;';
+            el.innerHTML = '<div style="color:#aaa;background:rgba(0,0,0,.6);padding:3px 8px;font-size:10px;font-family:monospace;border-radius:3px">tw-block v' + VERSAO_SCRIPT + ' ativo</div>';
+            playerDiv.style.position = 'relative';
+            playerDiv.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 1100); }, 3000);
+        }, 800);
     }
 
     // ── Monitor de buffer — previne travamento pós-ad ────────────────────────────
@@ -584,9 +674,13 @@
     }
 
     // ── Inicialização ────────────────────────────────────────────────────────────
+    _log(`scriptlet v${VERSAO_SCRIPT} iniciando em ${location.hostname}`);
+
     hookWorker();
     hookFetchPrincipal();
+
     if (CONF.monitorBuffer) monitorarBuffer();
+    mostrarIndicadorAtivo();
 
     if (['complete', 'loaded', 'interactive'].includes(document.readyState)) {
         aplicarCorrecaoVisibilidade();
@@ -594,7 +688,9 @@
         window.addEventListener('DOMContentLoaded', aplicarCorrecaoVisibilidade);
     }
 
-    // Atalho de emergência para recarregar o player manualmente
+    // Atalhos de diagnóstico — use no console F12 do browser
     window.recarregarPlayerTwitch = () => acionarPlayer(false, true);
+
+    _log('inicializacao concluida');
 
 })();

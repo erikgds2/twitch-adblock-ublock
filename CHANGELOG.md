@@ -55,6 +55,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.1.1] — 2026-03-16
+
+### Adicionado
+- Sistema de log em tempo real: `window.twLogs()` e `window.twDebug()` via console F12
+- Logs em todos os pontos críticos: startup, worker interceptado, canal registrado, ad detectado,
+  tentativas de backup stream, erros de fetch, sync de auth headers
+- Indicador visual "tw-block vXX ativo" exibido por 3s ao entrar em um canal — confirma que
+  o scriptlet foi carregado pelo uBlock antes de qualquer anúncio aparecer
+- Workers enviam logs de volta ao main thread via `postMessage({ key: 'Log', value })`
+
+### Corrigido
+- Banner de anúncio bloqueado atualizado para PT-BR: "Propagandas sendo bloqueadas"
+- `statusText` removido do proxy FetchResponse (era enviado ao worker mas não era necessário)
+
+---
+
 ## [1.1.0] — 2026-03-16
 
 ### Refatorado
