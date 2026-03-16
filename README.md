@@ -1,4 +1,4 @@
-# Twitch Ad Block — uBlock Origin
+# Twitch Ad Block — uBlock Origin / Tampermonkey
 
 Bloqueador de anúncios da **Twitch TV** via **Tampermonkey** + **uBlock Origin**.
 Utiliza a técnica VAFT (Video Ad-Fix Twitch) para interceptar o player HLS antes que os anúncios cheguem ao player, obtendo um stream limpo em tempo real.
