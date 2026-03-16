@@ -351,10 +351,14 @@
 
         const NovoWorker = class Worker extends WorkerOriginal {
             constructor(blobUrl, opts) {
-                // Intercepta qualquer worker de URL string — já estamos dentro do twitch.tv
-                // Inclui blob: (HLS player antigo) e CDN direto (Amazon IVS WASM worker)
-                if (typeof blobUrl !== 'string') { super(blobUrl, opts); return; }
-                _log(`worker interceptado: ${blobUrl.slice(0, 80)}`);
+                // Só intercepta workers blob: — workers CDN (IVS WASM) usam WebAssembly e
+                // quebram quando eval'dos num blob (imports relativos falham)
+                if (typeof blobUrl !== 'string' || !blobUrl.startsWith('blob:')) {
+                    _log(`worker CDN ignorado: ${String(blobUrl).slice(0, 80)}`);
+                    super(blobUrl, opts);
+                    return;
+                }
+                _log(`worker blob interceptado: ${blobUrl.slice(0, 60)}`);
 
                 _log(`worker blob interceptado: ${blobUrl.slice(0, 60)}`);
 
@@ -673,11 +677,79 @@
         } catch (_) {}
     }
 
+    // ── Detecção de anúncio via DOM (fallback quando worker não é blob) ──────────
+    function observarAdDOM() {
+        let overlayAtivo = null;
+
+        const esconderAd = () => {
+            const player = document.querySelector('.video-player__container, .video-player');
+            if (!player || overlayAtivo) return;
+
+            const video = player.querySelector('video');
+            if (video) { video.volume = 0; video.muted = true; }
+
+            overlayAtivo = document.createElement('div');
+            overlayAtivo.style.cssText = [
+                'position:absolute', 'inset:0', 'z-index:9998',
+                'background:#0e0e10',
+                'display:flex', 'align-items:center', 'justify-content:center',
+                'flex-direction:column', 'gap:12px',
+            ].join(';');
+            overlayAtivo.innerHTML = `
+                <div style="width:48px;height:48px;border:3px solid #9147ff;border-top-color:transparent;border-radius:50%;animation:twspin .8s linear infinite"></div>
+                <span style="color:#efeff1;font:14px/1 Inter,sans-serif;letter-spacing:.5px">Aguardando fim do anúncio…</span>
+            `;
+            if (!document.querySelector('#tw-spin-style')) {
+                const s = document.createElement('style');
+                s.id = 'tw-spin-style';
+                s.textContent = '@keyframes twspin{to{transform:rotate(360deg)}}';
+                document.head.appendChild(s);
+            }
+            player.style.position = 'relative';
+            player.appendChild(overlayAtivo);
+            _log('ad DOM detectado — overlay ativado');
+        };
+
+        const restaurar = () => {
+            if (!overlayAtivo) return;
+            overlayAtivo.remove();
+            overlayAtivo = null;
+            const video = document.querySelector('.video-player video, .video-player__container video');
+            if (video) { video.muted = false; video.volume = 0.5; }
+            _log('ad DOM terminou — overlay removido');
+        };
+
+        const ehAdAtivo = () => !!(
+            document.querySelector('.ad-countdown, [data-a-target="ad-countdown"], .tw-ad-unit__countdown') ||
+            document.querySelector('div[data-test-selector="ad-banner-default-wrapper"]') ||
+            document.querySelector('.video-ad-label')
+        );
+
+        // Observa mudanças no DOM do player
+        const obs = new MutationObserver(() => {
+            if (ehAdAtivo()) { esconderAd(); }
+            else              { restaurar();  }
+        });
+
+        const iniciarObs = () => {
+            const alvo = document.querySelector('#root') || document.body;
+            obs.observe(alvo, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+            _log('observerDOM iniciado');
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciarObs);
+        } else {
+            iniciarObs();
+        }
+    }
+
     // ── Inicialização ────────────────────────────────────────────────────────────
     _log(`scriptlet v${VERSAO_SCRIPT} iniciando em ${location.hostname}`);
 
     hookWorker();
     hookFetchPrincipal();
+    observarAdDOM();
 
     if (CONF.monitorBuffer) monitorarBuffer();
     mostrarIndicadorAtivo();
