@@ -75,10 +75,15 @@ twitch.tv##.ad-overlay-modal-container
 ! Intercepta e substitui segmentos de anúncio no player HLS
 twitch.tv##+js(twitch-videoad)
 
-! ── Filtros de segurança (não remover) ─────────────────────────────────────────
+! ── Filtros de segurança — exceções (NÃO REMOVER) ─────────────────────────────
 
-! Permite funcionamento normal do player Twitch
+! Permite funcionamento normal do player Twitch (sem estas linhas o stream para)
 @@||video-edge.twitch.tv^$media
 @@||video-weaver.twitch.tv^$media
 @@||clips.twitch.tv^$media
 @@||vod.twitch.tv^$media
+@@||usher.twitchapps.com^$xmlhttprequest
+
+! Permite carregamento da extensão e recursos estáticos legítimos da Twitch
+@@||static.twitchsvc.net/extensions^$script
+@@||assets.twitch.tv^$script,image
