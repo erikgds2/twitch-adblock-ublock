@@ -6,6 +6,29 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.0.0] — 2026-03-16
+
+### Refatorado
+- **[REESCRITA COMPLETA]** Scriptlet substituído pelo núcleo do VAFT (Video Ad-Fix Twitch)
+  de [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/twitchadsolutions)
+  — abordagem mais robusta e amplamente testada pela comunidade
+- **Worker hook corrigido**: checa `new URL(blobUrl).origin.endsWith('.twitch.tv')`
+  em vez de `blobUrl.startsWith('blob:')` — evita interceptar workers não-Twitch
+  que quebravam o player (tela preta)
+- **`getWasmWorkerJs` serializado**: leitura do worker original feita de DENTRO
+  do blob, não do main thread — evita problemas de contexto/CORS
+- Adicionado `@inject-into page` no header Tampermonkey — necessário para que o
+  hook em `window.Worker` funcione no contexto da página, não da extensão
+
+### Corrigido
+- **[CRÍTICO]** `||static.twitchsvc.net^$third-party` removido da lista de filtros
+  — estava bloqueando o IVS player worker da Amazon, impedindo o vídeo de carregar
+- Removidas regras de rede para `usher.twitchapps.com` e `video-edge.twitch.tv`
+  que interferiam com o carregamento do stream
+- Removido fallback MutationObserver (DOM overlay) que causava sobreposição falsa
+
+---
+
 ## [1.0.0] — 2026-03-16
 
 ### Adicionado
