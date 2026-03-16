@@ -56,10 +56,10 @@ Twitch Stream (HLS/M3U8)
 
 | Requisito | Versão mínima | Link |
 |-----------|--------------|------|
-| uBlock Origin | 1.50+ | [Chrome](https://chrome.google.com/webstore/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm) / [Firefox](https://addons.mozilla.org/pt-BR/firefox/addon/ublock-origin/) |
-| Navegador | Chrome 90+ / Firefox 90+ / Edge 90+ | — |
+| uBlock Origin | 1.50+ | [Chrome](https://chrome.google.com/webstore/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm) / [Firefox](https://addons.mozilla.org/pt-BR/firefox/addon/ublock-origin/) / [Edge](https://microsoftedge.microsoft.com/addons/detail/ublock-origin/odfafepnkmbhccpbejgmiehpchacaeak) |
+| Navegador | Chrome 90+ / Firefox 90+ / **Edge 90+** | — |
 
-> **Não funciona com uBlock Origin Lite** (versão limitada do Chrome Web Store). Use a versão completa.
+> **Não funciona com uBlock Origin Lite** (versão limitada do Chrome Web Store). Use a versão completa — disponível nos três navegadores acima.
 
 ---
 
@@ -191,6 +191,23 @@ twitch-adblock-ublock/
 ├── .gitignore
 └── README.md
 ```
+
+---
+
+## Notas para Microsoft Edge
+
+O Edge usa o mesmo motor Chromium do Chrome, então o uBlock Origin funciona de forma idêntica. Atenção a dois pontos específicos do Edge:
+
+**1. Instale pelo Edge Add-ons Store:**
+> Acesse [microsoftedge.microsoft.com/addons](https://microsoftedge.microsoft.com/addons/detail/ublock-origin/odfafepnkmbhccpbejgmiehpchacaeak) e instale o uBlock Origin (ícone vermelho, **não** o Lite).
+
+**2. Desative o "Modo de Segurança Aprimorada" para twitch.tv:**
+> Edge → Configurações → Privacidade, pesquisa e serviços → Segurança aprimorada → Exceções → Adicionar `twitch.tv`
+
+Sem desativar o Enhanced Security Mode para o twitch.tv, o Edge pode bloquear a injeção do scriptlet mesmo com o uBlock configurado.
+
+**3. Permita extensões em modo InPrivate (opcional):**
+> Edge → `edge://extensions` → uBlock Origin → Ativar "Permitir em InPrivate"
 
 ---
 
