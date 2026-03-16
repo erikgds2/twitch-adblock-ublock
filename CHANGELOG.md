@@ -55,6 +55,30 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.1.0] — 2026-03-16
+
+### Refatorado
+- **[REESCRITA COMPLETA]** Scriptlet `twitch-videoad.js` reescrito com a técnica de Worker Hook:
+  - Hook em `window.Worker` intercepta o player HLS da Twitch antes de ser spawned
+  - Lê o código original do worker via XHR síncrono e injeta funções de bloqueio via `.toString()`
+  - Fetch de backup stream: busca novo Access Token via GQL com `playerType` alternativo (`popout`)
+  - Comunicação Worker ↔ main thread via `FetchRequest`/`FetchResponse` (GQL proxy)
+  - `limparSegmentosAd()` remove segmentos `#EXTINF` de ad do manifesto M3U8
+  - `acionarPlayer()` recarrega/pause-play o player via React internals após bloqueio
+  - `atualizarBanner()` exibe overlay "bloqueando anúncios" no `.video-player`
+  - `monitorarBuffer()` previne travamento pós-ad com auto pause/play
+  - `aplicarCorrecaoVisibilidade()` impede pausa ao trocar de aba
+
+### Corrigido
+- **[Bug Crítico]** `authHeader: undefined` no template literal do blob do worker gerava a string
+  `"undefined"` (truthy), causando envio de `Authorization: undefined` nas requisições GQL
+- **[Bug Crítico]** Detecção de worker por `.endsWith('.twitch.tv')` falha para workers
+  hospedados em CDN externa (`static.twitchsvc.net`, etc.) — substituído por check de `blob:` URL
+- **[Arquitetura]** Abordagem anterior (hook de `window.fetch` no main thread) nunca interceptava
+  M3U8 pois o player HLS roda dentro de um Web Worker separado
+
+---
+
 ## Próximas Versões (Planejado)
 
 ### [1.1.0] — Em breve
