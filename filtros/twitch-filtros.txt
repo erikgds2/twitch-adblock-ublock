@@ -1,6 +1,6 @@
 ! =============================================================================
 ! Lista de Filtros Customizada — Twitch Ad Block
-! Versão: 1.0.0
+! Versão: 2.0.0
 ! Última atualização: 2026-03-16
 ! Compatível com: uBlock Origin 1.50+ | Chrome | Firefox | Edge
 ! =============================================================================
@@ -38,52 +38,22 @@ twitch.tv##div[data-test-selector="chat-ad-banner"]
 twitch.tv##.top-nav-ad
 twitch.tv##.tts-ad-container
 
-! ── Requisições de rede (bloqueio de chamadas a servidores de anúncio) ─────────
+! Overlay DOM de anúncio no player
+twitch.tv##div[class*="VideoAdOverlay"]
+twitch.tv##.ad-overlay-modal-container
 
-! Google DoubleClick / DFP (Twitch usa para stream ads)
+! ── Requisições de rede (apenas redes de anúncio externas — seguro bloquear) ──
+
+! Google DoubleClick / DFP
 ||imasdk.googleapis.com/js/sdkloader/ima3.js$script,domain=twitch.tv
 ||googleads.g.doubleclick.net^$domain=twitch.tv
 ||pubads.g.doubleclick.net^$domain=twitch.tv
 ||securepubads.g.doubleclick.net^$domain=twitch.tv
 ||ads.doubleclick.net^$domain=twitch.tv
 
-! Servidor de anúncios da própria Twitch
-||static.twitchsvc.net/static/twitchads/$media
-||static.twitchsvc.net^$third-party,domain=twitch.tv
-||spade.twitch.tv/track$domain=twitch.tv
-||twitchsvc.net/static^$domain=twitch.tv
-
 ! Amazon Publisher Services (parceiro de ads Twitch)
 ||aps.amazon.com^$third-party,domain=twitch.tv
 ||aax.amazon-adsystem.com^$domain=twitch.tv
 
-! Reinforce e outros ad-networks usados pela Twitch
-||reinforce.twitch.tv^
-||usher.twitchapps.com^$domain=twitch.tv
-
-! ── Filtros procedurais (DOM manipulation) ─────────────────────────────────────
-
-! Esconde container quando contém texto de anúncio
-twitch.tv##div[class*="VideoAdOverlay"]
-twitch.tv##.ad-overlay-modal-container
-
-! Bloqueia requisição de M3U8 com parâmetros de anúncio
-||video-edge-*.twitch.tv/*.m3u8?sig=*&token=*&allow_spectre=*$media,domain=twitch.tv
-
-! ── Scriptlet injection (requer userResourcesLocation configurado) ─────────────
-
-! Intercepta e substitui segmentos de anúncio no player HLS
-twitch.tv##+js(twitch-videoad)
-
-! ── Filtros de segurança — exceções (NÃO REMOVER) ─────────────────────────────
-
-! Permite funcionamento normal do player Twitch (sem estas linhas o stream para)
-@@||video-edge.twitch.tv^$media
-@@||video-weaver.twitch.tv^$media
-@@||clips.twitch.tv^$media
-@@||vod.twitch.tv^$media
-@@||usher.twitchapps.com^$xmlhttprequest
-
-! Permite carregamento da extensão e recursos estáticos legítimos da Twitch
-@@||static.twitchsvc.net/extensions^$script
-@@||assets.twitch.tv^$script,image
+! Rastreamento Twitch (não interfere no stream)
+||spade.twitch.tv/track$domain=twitch.tv
